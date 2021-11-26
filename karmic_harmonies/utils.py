@@ -6,6 +6,45 @@ from camb import model
 from camb.sources import SplinedSourceWindow, GaussianSourceWindow
 from math import sqrt
 
+def get_spectra(N_Z_BINS, zs, n_zs, probe_list, Omega_m, A_s, h=0.7, ns=0.97, Omega_b=0.046):
+    tic = time.time()
+    lmax=8000    
+    pars = camb.CAMBparams()
+    pars.set_cosmology(H0=100 * h, ombh2=Omega_b * h * h, omch2=(Omega_m - Omega_b) * h * h)
+    pars.InitPower.set_params(As=A_s, ns=ns)
+    pars.set_for_lmax(lmax, lens_potential_accuracy=1)
+    pars.Want_CMB = False 
+    pars.Want_CMB_lensing = False 
+    pars.NonLinear = model.NonLinear_both
+    SourceWindows = []
+    for z, n_z, probe in zip(zs, n_zs, probe_list):
+        if(probe=='lensing'):
+            window = SplinedSourceWindow(source_type='lensing', z=z, W=n_z)
+        elif(probe=='galaxy'):
+            mu, std = get_mean_std(n_z, z)
+            window = GaussianSourceWindow(redshift=mu, source_type='counts', bias=1., sigma=std)
+        SourceWindows.append(window)        
+        
+    pars.SourceWindows = SourceWindows
+    results = camb.get_results(pars)
+    cls = results.get_source_cls_dict(raw_cl=True)
+    
+    lmax = len(cls['W1xW1'])
+    
+    Cl = np.zeros((N_Z_BINS, N_Z_BINS, lmax))
+
+    for i in range(N_Z_BINS):
+        for j in range(N_Z_BINS):
+            cross_bin = 'W'+str(i+1)+'xW'+str(j+1)
+            Cl[i,j] = cls[cross_bin]
+    
+    for i in range(N_Z_BINS):
+        Cl[i,i,:2] = 1e-15                
+    
+    toc = time.time()
+    print("Time taken for power spectrum calculations: %2.3f seconds"%(toc - tic))
+    return Cl
+
 def get_lensing_spectra(N_Z_BINS, zs, n_zs, Omega_m, A_s, h=0.7, ns=0.97, Omega_b=0.046):
     tic = time.time()
     lmax=8000    
@@ -70,9 +109,11 @@ def get_galaxy_spectra(N_Z_BINS, zs, n_zs, Omega_m, A_s, h=0.7, ns=0.97, Omega_b
     Cl = np.zeros((N_Z_BINS, N_Z_BINS, lmax))
 
     for i in range(N_Z_BINS):
+        cross_bin = 'W'+str(i+1)+'xW'+str(i+1)
+        Cl[i,i] = cls[cross_bin]
         for j in range(N_Z_BINS):
-            cross_bin = 'W'+str(i+1)+'xW'+str(j+1)
-            Cl[i,j] = cls[cross_bin]
+            if(i!=j):
+                Cl[i,j] = 0. * cls['W1xW1']
     
     for i in range(N_Z_BINS):
         Cl[i,i,:2] = 1e-15                
