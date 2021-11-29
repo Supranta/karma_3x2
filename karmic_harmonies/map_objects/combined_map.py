@@ -53,7 +53,7 @@ class CombinedMap:
     
     def get_synthetic_galaxy_data(self, delta_l, nbar):
         delta_x = self.map_tool.fourier2map(delta_l)
-        lambda_i = (1. + delta_x) * nbar
+        lambda_i = (1. + delta_x) * nbar * self.PIXEL_AREA
         data = np.random.poisson(lambda_i)        
         return data
         
