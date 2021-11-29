@@ -20,23 +20,7 @@ class GaussianCombinedMap(CombinedMap):
         field_real, field_imag = self.enforce_symmetry([field_real, field_imag])        
         field_l = np.concatenate([field_real[:,np.newaxis], field_imag[:,np.newaxis]], axis=1)        
         
-        return scaling * field_l
-    
-    @partial(jit, static_argnums=(0,))
-    def log_prior(self, x):        
-        ln_prior = 0.5 * jnp.sum(x**2)
-        return ln_prior
-    
-    def log_like(self, x):   
-        ln_like = 0.
-        delta = self.x2delta(x)
-        for i in range(self.N_Z_BINS):
-            ln_like += self.log_like_1bin(delta[i], self.counts[i], self.nbars[i])        
-        return ln_like 
-    
-    def grad_like(self, x):
-        grad_like = np.array(grad(self.log_like, 0)(x))
-        return grad_like
+        return scaling * field_l              
             
     def x2delta(self, x):
         x = self.wrap_fourier(x)        

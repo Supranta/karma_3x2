@@ -31,8 +31,18 @@ for i in range(N_Z_BINS):
     delta_x_min  = delta_x_true.min()
     print("delta_x_min: %2.4f"%(delta_x_min))
 
-with h5.File(datafile, 'w') as f:
-    f.create_group('data')
+with h5.File(datafile, 'w') as f:    
     for i in range(N_Z_BINS):
-        f['data']['data_%d'%(i)]       = data[i]
+        f.create_group('bin_%d'%(i))
+        g = f['bin_%d'%(i)]
+        g.create_group('data')
+        probe = probe_list[i]
+        f['bin_%d'%(i)]['probe'] = probe
+        f['bin_%d'%(i)]['data']['nbar']  = n_bar[i]
+        if(probe=='lensing'):
+            f['bin_%d'%(i)]['data']['eps'] = data[i]
+            f['bin_%d'%(i)]['data']['sigma_eps'] = sigma_eps[i]
+        elif(probe=='galaxy'):
+            f['bin_%d'%(i)]['data']['counts'] = data[i]
+            
     f['true_field'] = field_true    
