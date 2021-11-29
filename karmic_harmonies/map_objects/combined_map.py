@@ -105,8 +105,8 @@ class CombinedMap:
         return jnp.sum(lambda_i - counts * jnp.log(lambda_i))
     
     def log_like(self, x):   
-        ln_like = 0.
-        field = self.x2delta(x)
+        ln_like = 0.        
+        field = self.x2field(x)
         for i in range(self.N_Z_BINS):
             probe = self.probe_list[i]
             if(probe=='lensing'):
