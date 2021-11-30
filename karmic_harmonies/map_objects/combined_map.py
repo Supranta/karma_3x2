@@ -101,7 +101,7 @@ class CombinedMap:
         nbar   = data['nbar']
         counts = data['counts']
         delta_x = self.map_tool.fourier2map(delta_l)
-        lambda_i = (1. + delta_x) * nbar        
+        lambda_i = (1. + delta_x) * nbar * self.PIXEL_AREA      
         return jnp.sum(lambda_i - counts * jnp.log(lambda_i))
     
     def log_like(self, x):   
@@ -256,3 +256,26 @@ class CombinedMap:
         x_imag[:,(self.N_Y):,0]  = -x_imag[:,1:self.N_Y-1,0][::-1]
         
         return x_real, x_imag
+    
+    @partial(jit, static_argnums=(0,))
+    def matmul(self, A, x):
+        y = jnp.zeros(x.shape)
+        for i in range(self.N_Z_BINS):
+            a = jnp.sum(A[i,:] * x, axis=0)
+            y = jax.ops.index_add(y, i, a)
+        return y
+        
+    def set_eigs(self, Cl_arr_real, Cl_arr_imag):
+        self.eig_val_real, eig_vec_real = np.linalg.eig(Cl_arr_real.T)            
+        self.eig_val_imag, eig_vec_imag = np.linalg.eig(Cl_arr_imag.T)        
+        self.R_real = np.swapaxes(eig_vec_real.T, 0, 1)
+        self.R_imag = np.swapaxes(eig_vec_imag.T, 0, 1)
+        self.R_real = self.eig_vec_normalize(self.R_real)
+        self.R_imag = self.eig_vec_normalize(self.R_imag)
+        self.R_real_T = np.swapaxes(self.R_real, 0, 1)
+        self.R_imag_T = np.swapaxes(self.R_imag, 0, 1)
+    
+    def eig_vec_normalize(self, x):
+        sign_matrix = (x[0] + 1e-25) / np.abs(x[0] + 1e-25)
+        sign_matrix = sign_matrix[np.newaxis]
+        return sign_matrix * x

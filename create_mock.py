@@ -2,7 +2,7 @@ import sys
 import h5py as h5
 
 # Import functions from modules
-from karmic_harmonies.map_objects import GaussianCombinedMap
+from karmic_harmonies.map_objects import GaussianMap, LogNormalMap
 from karmic_harmonies import config_map, config_io, config_mock, config_lognormal, config_cosmo_pars, IOHandler
 
 configfile = sys.argv[1]
@@ -21,7 +21,14 @@ with h5.File(n_z_file, 'r') as f:
     
 nz         = [zs, n_zs]
 
-combined_map = GaussianCombinedMap(N_Z_BINS, N_grid, theta_max, nz, probe_list, cosmo_pars)
+if(lognormal):
+    print("Creating lognormal mocks...")
+    combined_map = LogNormalMap(N_Z_BINS, N_grid, theta_max, nz, probe_list, cosmo_pars, shift, precalculated)
+    if var_gauss is not None:
+        combined_map.var_gauss = var_gauss
+else:
+    print("Creating Gaussian mocks...")
+    combined_map = GaussianMap(N_Z_BINS, N_grid, theta_max, nz, probe_list, cosmo_pars)
 
 print("Creating mock data...")    
 data, field_true = combined_map.create_synthetic_data(n_bar, sigma_eps, probe_list)    # Create a synthetic map  

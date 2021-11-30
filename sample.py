@@ -5,7 +5,7 @@ import numpy as np
 import jax.numpy as jnp
 
 # Import functions from modules
-from karmic_harmonies.map_objects import GaussianMap
+from karmic_harmonies.map_objects import GaussianMap, LogNormalMap
 from karmic_harmonies.samplers import HMCSampler, SliceSampler, MHSampler
 from karmic_harmonies import get_lensing_spectra, config_map, config_io, config_sampling, config_cosmo, config_cosmo_pars, config_lognormal, IOHandler
 
@@ -36,7 +36,14 @@ nz         = [zs, n_zs]
 
 io_handler = IOHandler(savedir, N_SAVE, N_RESTART, sample_map, sample_cosmo, cosmo_pars[0])
 
-combined_map = GaussianMap(N_Z_BINS, N_grid, theta_max, nz, probe_list, cosmo_pars)
+if(lognormal):
+    print("Using LogNormal maps....")
+    combined_map = LogNormalMap(N_Z_BINS, N_grid, theta_max, nz, probe_list, cosmo_pars, shift, precalculated)
+    if var_gauss is not None:
+        combined_map.var_gauss = var_gauss
+else:
+    print("Using Gaussian maps....")
+    combined_map = GaussianMap(N_Z_BINS, N_grid, theta_max, nz, probe_list, cosmo_pars)
 
 # Emu = None
 # if emulator_file is not None:
@@ -86,13 +93,13 @@ N_MODES = 2 * N_Z_BINS * np.sum(combined_map.map_tool.fourier_symm_mask)
 N_pix   = N_Z_BINS * N_grid * N_grid
 N_DIM   = x.shape
     
-# if(precalculated_mass_matrix):
-#     mass_matrix = np.load(savedir+'/mass_matrix.npy')    
-#     print("Using precomputed mass matrix...")
-# else:
-#     print("Mass matrix not found in save_dir. Using default mass matrix instead...")
+if(precalculated_mass_matrix):
+    mass_matrix = np.load(savedir+'/mass_matrix.npy')    
+    print("Using precomputed mass matrix...")
+else:
+    print("Mass matrix not found in save_dir. Using default mass matrix instead...")
 
-mass_matrix = np.tile(np.eye(N_Z_BINS)[:,:,np.newaxis],N_grid**2-1)
+# mass_matrix = np.tile(np.eye(N_Z_BINS)[:,:,np.newaxis],N_grid**2-1)
 combined_map.mass_arr = mass_matrix
 
 MapSampler = HMCSampler(N_DIM, combined_map.psi, combined_map.grad_psi, combined_map.mass_arr, N_grid, N_Z_BINS, verbose=VERBOSE)
