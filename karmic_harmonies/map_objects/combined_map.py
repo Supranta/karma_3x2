@@ -82,19 +82,25 @@ class CombinedMap:
         return grad(self.log_prior, 0)(x)                    
     
     @partial(jit, static_argnums=(0,))
-    def log_like_1bin_shear(self, kappa_l, data, A1=5.):
+    def log_like_1bin_shear(self, delta_l, data, ia_pars):
+        A1, bta = ia_pars 
         eps       = data['eps']
         sigma_eps = data['sigma_eps']
         n_bar     = data['nbar']
         
-        gamma_1, gamma_2 = self.map_tool.do_fwd_KS(kappa_l)
+        T1, T2 = self.map_tool.do_fwd_KS(delta_l)
+        delta_x = self.map_tool.fourier2map(delta_l)
+
+        Q1 = delta_x * T1
+        Q2 = delta_x * T2
 
         eps_1, eps_2 = eps      
         
         C1 = self.C_cr * self.OmegaM_fid * A1
+        C2 = self.C_cr * self.OmegaM_fid * self.A1_fid * bta
 
-        residual_1 = (C1 * gamma_1 - eps_1) / sigma_eps
-        residual_2 = (C1 * gamma_2 - eps_2) / sigma_eps
+        residual_1 = (C1 * T1 + C2 * Q1 - eps_1) / sigma_eps
+        residual_2 = (C1 * T2 + C2 * Q2 - eps_2) / sigma_eps
         
         return 0.5 * jnp.sum(residual_1**2) + 0.5 * jnp.sum(residual_2**2) 
     
@@ -106,27 +112,27 @@ class CombinedMap:
         lambda_i = (1. + delta_x) * nbar * self.PIXEL_AREA      
         return jnp.sum(lambda_i - counts * jnp.log(lambda_i))
     
-    def log_like(self, x, A1):   
+    def log_like(self, x, ia_pars):   
         ln_like = 0.        
         field = self.x2field(x)
         for i in range(self.N_Z_BINS):
-            ln_like_bin_shape = self.log_like_1bin_shear(field[i], self.data[i], A1)
+            ln_like_bin_shape = self.log_like_1bin_shear(field[i], self.data[i], ia_pars)
             ln_like_bin_count = self.log_like_1bin_galaxy(field[i], self.data[i])
             ln_like = ln_like + ln_like_bin_shape + ln_like_bin_count
         return ln_like 
 
-    def log_prob_ia(self, A1, x):
-        return -self.log_like(x, A1)
+    def log_prob_ia(self, ia_pars, x):
+        return -self.log_like(x, ia_pars)
     
-    def grad_like(self, x, A1):
-        grad_like = np.array(grad(self.log_like, 0)(x, A1))
+    def grad_like(self, x, ia_pars):
+        grad_like = np.array(grad(self.log_like, 0)(x, ia_pars))
         return grad_like
     
-    def grad_psi(self, x, A1=5.):
-        return self.grad_prior(x) + self.grad_like(x, A1)
+    def grad_psi(self, x, ia_pars):
+        return self.grad_prior(x) + self.grad_like(x, ia_pars)
     
-    def psi(self, x, A1=5.):
-        return self.log_prior(x) + self.log_like(x, A1)
+    def psi(self, x, ia_pars):
+        return self.log_prior(x) + self.log_like(x, ia_pars)
 
 #=============== WRAP to Fourier object ====================
     @partial(jit, static_argnums=(0,))

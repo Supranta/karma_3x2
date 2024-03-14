@@ -52,7 +52,7 @@ else:
 #     Emu.setup_from_file(emulator_file)
 
 # Default initial parameter values     
-cosmo_pars = np.array([cosmo_ia_pars[-1]])        
+cosmo_pars = np.array([cosmo_ia_pars[-1], 0.])        
 fields     = combined_map.init_field(0.1)
 cosmo_lnprob = 0.
         
@@ -105,8 +105,8 @@ MapSampler = HMCSampler(N_DIM, combined_map.psi, combined_map.grad_psi, combined
 # MapSampler = HMCSampler(N_DIM, ShearMap.log_prior, ShearMap.grad_prior, ShearMap.mass_arr, N_grid, N_Z_BINS, verbose=VERBOSE)
     
 if(sample_cosmo):
-    step_cov = np.array([[1.]])
-    CosmoSampler   = SliceSampler(1, lnprob=combined_map.log_prob_ia, verbose=VERBOSE)
+    step_cov = np.array([[1., 0.], [0., 0.1**2]])
+    CosmoSampler   = SliceSampler(2, lnprob=combined_map.log_prob_ia, verbose=VERBOSE)
     CosmoSampler.set_cov(step_cov)  
     cosmo_chain = []
 
@@ -114,17 +114,17 @@ for i in range(N_START, N_START + N_MCMC):
     print("MCMC step: %d"%(i))
     if(sample_map):    
         start_time = time.time()
-        x, ln_prob, acc, KE = MapSampler.sample_one_step(x, dt, N_LEAPFROG, psi_kwargs={'A1': cosmo_pars[0]}, grad_psi_kwargs={'A1': cosmo_pars[0]})    
+        x, ln_prob, acc, KE = MapSampler.sample_one_step(x, dt, N_LEAPFROG, psi_kwargs={'ia_pars': cosmo_pars}, grad_psi_kwargs={'ia_pars': cosmo_pars})    
         end_time = time.time()        
         print("Time taken for HMC sampling: %2.3f"%(end_time - start_time))
         fields = combined_map.x2field(x)        
         ln_prior = float(combined_map.log_prior(x))
-        ln_like  = float(combined_map.log_like(x, cosmo_pars[0]))        
+        ln_like  = float(combined_map.log_like(x, cosmo_pars))        
         io_handler.map_sample_output(acc, i, N_MODES, N_pix, ln_prior, ln_like)
         io_handler.write_map_output(i, fields, x, KE, ln_prob, ln_like, ln_prior)        
     if(sample_cosmo):
         cosmo_pars, cosmo_acc, cosmo_lnprob = CosmoSampler.sample_one_step(cosmo_pars, lnprob_kwargs={'x':x})
-        print("A1 value: %2.3f"%(cosmo_pars[0]))
+        print("IA pars: "+str(cosmo_pars))
         if(i < N_START + N_ADAPT):
             print("Adapting covariance...")
             CosmoSampler.update_cov(cosmo_pars, i+2-N_START) 
