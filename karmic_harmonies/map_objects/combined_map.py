@@ -106,24 +106,27 @@ class CombinedMap:
         lambda_i = (1. + delta_x) * nbar * self.PIXEL_AREA      
         return jnp.sum(lambda_i - counts * jnp.log(lambda_i))
     
-    def log_like(self, x):   
+    def log_like(self, x, A1):   
         ln_like = 0.        
         field = self.x2field(x)
         for i in range(self.N_Z_BINS):
-            ln_like_bin_shape = self.log_like_1bin_shear(field[i], self.data[i])
+            ln_like_bin_shape = self.log_like_1bin_shear(field[i], self.data[i], A1)
             ln_like_bin_count = self.log_like_1bin_galaxy(field[i], self.data[i])
             ln_like = ln_like + ln_like_bin_shape + ln_like_bin_count
         return ln_like 
+
+    def log_prob_ia(self, A1, x):
+        return -self.log_like(x, A1)
     
-    def grad_like(self, x):
-        grad_like = np.array(grad(self.log_like, 0)(x))
+    def grad_like(self, x, A1):
+        grad_like = np.array(grad(self.log_like, 0)(x, A1))
         return grad_like
     
-    def grad_psi(self, x):
-        return self.grad_prior(x) + self.grad_like(x)
+    def grad_psi(self, x, A1=5.):
+        return self.grad_prior(x) + self.grad_like(x, A1)
     
-    def psi(self, x):
-        return self.log_prior(x) + self.log_like(x)
+    def psi(self, x, A1=5.):
+        return self.log_prior(x) + self.log_like(x, A1)
 
 #=============== WRAP to Fourier object ====================
     @partial(jit, static_argnums=(0,))

@@ -52,7 +52,7 @@ else:
 #     Emu.setup_from_file(emulator_file)
 
 # Default initial parameter values     
-cosmo_pars = np.array([0., 0.])        
+cosmo_pars = np.array([cosmo_ia_pars[-1]])        
 fields     = combined_map.init_field(0.1)
 cosmo_lnprob = 0.
         
@@ -65,9 +65,8 @@ if(restart_flag == 'INIT'):
 elif(restart_flag == 'RESUME'):
     print("Restarting run....")    
     with h5.File(savedir+'/restart.h5', 'r') as f_restart:
-        N_START = f_restart['N_STEP'].value
+        N_START = f_restart['N_STEP'][()]
         fields = f_restart['kappa_l'][:]
-        #print("x.shape: "+str(x.shape))
 #         if(sample_cosmo):
 #             try:
 #                 cosmo_pars = f_restart['cosmo_pars'][:]
@@ -105,39 +104,31 @@ combined_map.mass_arr = mass_matrix
 MapSampler = HMCSampler(N_DIM, combined_map.psi, combined_map.grad_psi, combined_map.mass_arr, N_grid, N_Z_BINS, verbose=VERBOSE)
 # MapSampler = HMCSampler(N_DIM, ShearMap.log_prior, ShearMap.grad_prior, ShearMap.mass_arr, N_grid, N_Z_BINS, verbose=VERBOSE)
     
-# if(sample_cosmo):
-#     step_cov       = np.array([[sigma_Om**2, rho * sigma_A * sigma_Om],
-#                                [rho * sigma_Om * sigma_A,  sigma_A**2]])
-#     if(cosmo_sampler=='slice'):
-#         print("Using Slice Sampler...")
-#         CosmoSampler   = SliceSampler(2, lnprob=combined_map.log_prob_cosmo, verbose=VERBOSE)
-#     elif(cosmo_sampler=='mh'):
-#         print("Using MH Sampler...")
-#         CosmoSampler   = MHSampler(lnprob=combined_map.log_prob_cosmo, verbose=VERBOSE)
-#     CosmoSampler.set_cov(step_cov)  
-#     cosmo_chain = []
+if(sample_cosmo):
+    step_cov = np.array([[1.]])
+    CosmoSampler   = SliceSampler(1, lnprob=combined_map.log_prob_ia, verbose=VERBOSE)
+    CosmoSampler.set_cov(step_cov)  
+    cosmo_chain = []
 
 for i in range(N_START, N_START + N_MCMC):
     print("MCMC step: %d"%(i))
     if(sample_map):    
         start_time = time.time()
-        x, ln_prob, acc, KE = MapSampler.sample_one_step(x, dt, N_LEAPFROG)    
+        x, ln_prob, acc, KE = MapSampler.sample_one_step(x, dt, N_LEAPFROG, psi_kwargs={'A1': cosmo_pars[0]}, grad_psi_kwargs={'A1': cosmo_pars[0]})    
         end_time = time.time()        
         print("Time taken for HMC sampling: %2.3f"%(end_time - start_time))
         fields = combined_map.x2field(x)        
         ln_prior = float(combined_map.log_prior(x))
-        ln_like  = float(combined_map.log_like(x))        
+        ln_like  = float(combined_map.log_like(x, cosmo_pars[0]))        
         io_handler.map_sample_output(acc, i, N_MODES, N_pix, ln_prior, ln_like)
         io_handler.write_map_output(i, fields, x, KE, ln_prob, ln_like, ln_prior)        
-#     if(sample_cosmo):
-#         for ii in range(N_COSMO):
-#             cosmo_pars, cosmo_acc, cosmo_lnprob = CosmoSampler.sample_one_step(cosmo_pars, lnprob_kwargs={'x':x, 'Emu':Emu})
-#         if(i < N_START + N_ADAPT):
-#             print("Adapting covariance...")
-#             CosmoSampler.update_cov(cosmo_pars, i+2-N_START) 
-#         cosmo_chain.append(cosmo_pars)
-#         np.save(savedir+'/cosmo_chain.npy',np.array(cosmo_chain))
-#         ShearMap = io_handler.cosmo_sample_output(i, cosmo_pars, Emu, ShearMap, lognormal)        
-#         io_handler.write_cosmo_output(i, cosmo_pars, cosmo_lnprob)
+    if(sample_cosmo):
+        cosmo_pars, cosmo_acc, cosmo_lnprob = CosmoSampler.sample_one_step(cosmo_pars, lnprob_kwargs={'x':x})
+        print("A1 value: %2.3f"%(cosmo_pars[0]))
+        if(i < N_START + N_ADAPT):
+            print("Adapting covariance...")
+            CosmoSampler.update_cov(cosmo_pars, i+2-N_START) 
+        cosmo_chain.append(cosmo_pars)
+        np.save(savedir+'/cosmo_chain.npy',np.array(cosmo_chain))
     fields = combined_map.x2field(x)
     io_handler.write_restart(i, fields, x, cosmo_pars, cosmo_lnprob)        
