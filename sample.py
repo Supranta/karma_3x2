@@ -7,7 +7,7 @@ import jax.numpy as jnp
 # Import functions from modules
 from karmic_harmonies.map_objects import GaussianMap, LogNormalMap
 from karmic_harmonies.samplers import HMCSampler, SliceSampler, MHSampler
-from karmic_harmonies import get_lensing_spectra, config_map, config_io, config_sampling, config_cosmo, config_cosmo_pars, config_lognormal, IOHandler
+from karmic_harmonies import get_lensing_spectra, config_map, config_io, config_sampling, config_cosmo, config_cosmo_ia_pars, config_lognormal, IOHandler
 
 restart_flag = sys.argv[1]
 
@@ -18,7 +18,7 @@ configfile = sys.argv[2]
 N_Z_BINS, n_z_file, N_grid, theta_max       = config_map(configfile)
 datafile, savedir, N_SAVE, N_RESTART        = config_io(configfile)
 lognormal, precalculated, shift, var_gauss  = config_lognormal(configfile)
-cosmo_pars                             = config_cosmo_pars(configfile)
+cosmo_ia_pars                             = config_cosmo_ia_pars(configfile)
 # n_bar, sigma_eps                       = config_mock(configfile)
 sample_map, sample_cosmo, N_COSMO,\
             N_ADAPT, N_MCMC, dt, N_LEAPFROG,\
@@ -34,16 +34,16 @@ assert len(n_zs)==N_Z_BINS,"Size of the n_zs list must be equal to the number of
 
 nz         = [zs, n_zs]
 
-io_handler = IOHandler(savedir, N_SAVE, N_RESTART, sample_map, sample_cosmo, cosmo_pars[0])
+io_handler = IOHandler(savedir, N_SAVE, N_RESTART, sample_map, sample_cosmo, cosmo_ia_pars[0])
 
 if(lognormal):
     print("Using LogNormal maps....")
-    combined_map = LogNormalMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_pars, shift, precalculated)
+    combined_map = LogNormalMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_ia_pars, shift, precalculated)
     if var_gauss is not None:
         combined_map.var_gauss = var_gauss
 else:
     print("Using Gaussian maps....")
-    combined_map = GaussianMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_pars)
+    combined_map = GaussianMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_ia_pars)
 
 # Emu = None
 # if emulator_file is not None:

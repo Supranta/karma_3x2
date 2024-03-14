@@ -3,14 +3,14 @@ import h5py as h5
 
 # Import functions from modules
 from karmic_harmonies.map_objects import GaussianMap, LogNormalMap
-from karmic_harmonies import config_map, config_io, config_mock, config_lognormal, config_cosmo_pars, IOHandler
+from karmic_harmonies import config_map, config_io, config_mock, config_lognormal, config_cosmo_ia_pars, IOHandler
 
 configfile = sys.argv[1]
 
 N_Z_BINS, n_z_file, N_grid, theta_max  = config_map(configfile)
 datafile, _, _, _                      = config_io(configfile)
 lognormal, precalculated, shift, var_gauss   = config_lognormal(configfile)
-cosmo_pars                             = config_cosmo_pars(configfile)
+cosmo_ia_pars                          = config_cosmo_ia_pars(configfile)
 n_bar, sigma_eps                       = config_mock(configfile)
 
 
@@ -23,12 +23,12 @@ nz         = [zs, n_zs]
 
 if(lognormal):
     print("Creating lognormal mocks...")
-    combined_map = LogNormalMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_pars, shift, precalculated)
+    combined_map = LogNormalMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_ia_pars, shift, precalculated)
     if var_gauss is not None:
         combined_map.var_gauss = var_gauss
 else:
     print("Creating Gaussian mocks...")
-    combined_map = GaussianMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_pars)
+    combined_map = GaussianMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_ia_pars)
 
 print("Creating mock data...")    
 field_true, n_gals, ellipticity = combined_map.create_synthetic_data(n_bar, sigma_eps)    # Create a synthetic map  

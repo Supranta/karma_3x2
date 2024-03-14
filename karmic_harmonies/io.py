@@ -63,8 +63,8 @@ def config_io(configfile):
     
     return datafile, savedir, N_SAVE, N_RESTART
 
-def config_cosmo_pars(configfile):
-    print('Entering config_cosmo_pars....')
+def config_cosmo_ia_pars(configfile):
+    print('Entering config_cosmo_ia_pars....')
     
     config = configparser.ConfigParser()
     config.read(configfile)
@@ -75,16 +75,18 @@ def config_cosmo_pars(configfile):
         h       = float(config['COSMOLOGY']['h'])
         ns      = float(config['COSMOLOGY']['ns'])
         Omega_b = float(config['COSMOLOGY']['Omega_b'])
+        A1      = float(config['COSMOLOGY']['A1'])
     except:
         Omega_m = 0.279
         As = 2.249e-9
         h = 0.7
         ns = 0.97
         Omega_b = 0.046
+        A1 = 5.
     print('Exiting config_cosmo_pars....')
-    cosmo_pars = [Omega_m, As, h, ns, Omega_b]
+    cosmo_ia_pars = [Omega_m, As, h, ns, Omega_b, A1]
     
-    return cosmo_pars
+    return cosmo_ia_pars
     
 def config_sampling(configfile):
     print('Entering config_sampling....')

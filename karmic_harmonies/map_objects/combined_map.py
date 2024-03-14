@@ -17,7 +17,7 @@ EPS = 1e-20
 J = np.complex(0., 1.)
 
 class CombinedMap:
-    def __init__(self, N_Z_BINS, N_grid, theta_max, n_z, cosmo_pars):
+    def __init__(self, N_Z_BINS, N_grid, theta_max, n_z, cosmo_ia_pars):
         """
         :N_Z_BINS:   Number of redshift bins
         :N_grid:     Number of pixels on each side. At the moment, we assume square geometry
@@ -30,9 +30,10 @@ class CombinedMap:
         self.map_tool = MapTools(N_grid, theta_max)
         self.N_Y = self.map_tool.N_Y
         
-        self.OmegaM_fid, self.As_fid, h, ns, Omega_b = cosmo_pars
+        self.OmegaM_fid, self.As_fid, h, ns, Omega_b, self.A1_fid = cosmo_ia_pars
         self.zs, self.n_zs           = n_z
-        
+        self.C_cr = 0.0134
+       
         Cl = get_spectra(N_Z_BINS, self.zs, self.n_zs, self.OmegaM_fid, self.As_fid, 
                          h=h, ns=ns, Omega_b=Omega_b)
 
@@ -41,11 +42,14 @@ class CombinedMap:
     
     def get_synthetic_lensing_data(self, kappa_l, sigma_eps, galaxy_number):
         sigma_eps_i = sigma_eps / np.sqrt(galaxy_number)
+        
+        C1 = self.C_cr * self.OmegaM_fid * self.A1_fid
 
+        print("C1: "+str(C1))
         gamma_1, gamma_2 = self.map_tool.do_fwd_KS(kappa_l)
 
-        eps_1_i = gamma_1 + sigma_eps_i * np.random.normal(size=gamma_1.shape)
-        eps_2_i = gamma_2 + sigma_eps_i * np.random.normal(size=gamma_2.shape)
+        eps_1_i = C1 * gamma_1 + sigma_eps_i * np.random.normal(size=gamma_1.shape)
+        eps_2_i = C1 * gamma_2 + sigma_eps_i * np.random.normal(size=gamma_2.shape)
         
         data = np.array([eps_1_i, eps_2_i])
         return data
@@ -78,7 +82,7 @@ class CombinedMap:
         return grad(self.log_prior, 0)(x)                    
     
     @partial(jit, static_argnums=(0,))
-    def log_like_1bin_shear(self, kappa_l, data):
+    def log_like_1bin_shear(self, kappa_l, data, A1=5.):
         eps       = data['eps']
         sigma_eps = data['sigma_eps']
         n_bar     = data['nbar']
@@ -87,8 +91,10 @@ class CombinedMap:
 
         eps_1, eps_2 = eps      
         
-        residual_1 = (gamma_1 - eps_1) / sigma_eps
-        residual_2 = (gamma_2 - eps_2) / sigma_eps
+        C1 = self.C_cr * self.OmegaM_fid * A1
+
+        residual_1 = (C1 * gamma_1 - eps_1) / sigma_eps
+        residual_2 = (C1 * gamma_2 - eps_2) / sigma_eps
         
         return 0.5 * jnp.sum(residual_1**2) + 0.5 * jnp.sum(residual_2**2) 
     
