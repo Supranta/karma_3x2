@@ -40,14 +40,13 @@ def config_map(configfile):
     
     N_Z_BINS  = int(config['MAP']['N_Z_BINS'])
     n_z_file  = config['MAP']['n_z_file']
-    probe_list = config['MAP']['probes'].split(',')
         
     N_GRID    = int(config['MAP']['N_GRID'])
     theta_max = float(config['MAP']['theta_max'])    
     
     print('Exiting config_map....')
     
-    return N_Z_BINS, n_z_file, N_GRID, theta_max, probe_list
+    return N_Z_BINS, n_z_file, N_GRID, theta_max
 
 def config_io(configfile):
     print('Entering config_io....')

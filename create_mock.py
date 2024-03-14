@@ -7,7 +7,7 @@ from karmic_harmonies import config_map, config_io, config_mock, config_lognorma
 
 configfile = sys.argv[1]
 
-N_Z_BINS, n_z_file, N_grid, theta_max, probe_list = config_map(configfile)
+N_Z_BINS, n_z_file, N_grid, theta_max  = config_map(configfile)
 datafile, _, _, _                      = config_io(configfile)
 lognormal, precalculated, shift, var_gauss   = config_lognormal(configfile)
 cosmo_pars                             = config_cosmo_pars(configfile)
@@ -23,15 +23,15 @@ nz         = [zs, n_zs]
 
 if(lognormal):
     print("Creating lognormal mocks...")
-    combined_map = LogNormalMap(N_Z_BINS, N_grid, theta_max, nz, probe_list, cosmo_pars, shift, precalculated)
+    combined_map = LogNormalMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_pars, shift, precalculated)
     if var_gauss is not None:
         combined_map.var_gauss = var_gauss
 else:
     print("Creating Gaussian mocks...")
-    combined_map = GaussianMap(N_Z_BINS, N_grid, theta_max, nz, probe_list, cosmo_pars)
+    combined_map = GaussianMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_pars)
 
 print("Creating mock data...")    
-data, field_true = combined_map.create_synthetic_data(n_bar, sigma_eps, probe_list)    # Create a synthetic map  
+field_true, n_gals, ellipticity = combined_map.create_synthetic_data(n_bar, sigma_eps)    # Create a synthetic map  
 print("Done creating mock data...")
 for i in range(N_Z_BINS):
     delta_x_true = combined_map.map_tool.fourier2map(field_true[i])
@@ -43,13 +43,9 @@ with h5.File(datafile, 'w') as f:
         f.create_group('bin_%d'%(i))
         g = f['bin_%d'%(i)]
         g.create_group('data')
-        probe = probe_list[i]
-        f['bin_%d'%(i)]['probe'] = probe
-        f['bin_%d'%(i)]['data']['nbar']  = n_bar[i]
-        if(probe=='lensing'):
-            f['bin_%d'%(i)]['data']['eps'] = data[i]
-            f['bin_%d'%(i)]['data']['sigma_eps'] = sigma_eps[i]
-        elif(probe=='galaxy'):
-            f['bin_%d'%(i)]['data']['counts'] = data[i]
+        f['bin_%d'%(i)]['data']['nbar']      = n_bar[i]
+        f['bin_%d'%(i)]['data']['eps']       = ellipticity[i]
+        f['bin_%d'%(i)]['data']['sigma_eps'] = sigma_eps[i]
+        f['bin_%d'%(i)]['data']['counts']    = n_gals[i]
             
     f['true_field'] = field_true    

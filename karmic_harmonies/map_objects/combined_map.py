@@ -17,7 +17,7 @@ EPS = 1e-20
 J = np.complex(0., 1.)
 
 class CombinedMap:
-    def __init__(self, N_Z_BINS, N_grid, theta_max, n_z, probe_list, cosmo_pars):
+    def __init__(self, N_Z_BINS, N_grid, theta_max, n_z, cosmo_pars):
         """
         :N_Z_BINS:   Number of redshift bins
         :N_grid:     Number of pixels on each side. At the moment, we assume square geometry
@@ -32,16 +32,15 @@ class CombinedMap:
         
         self.OmegaM_fid, self.As_fid, h, ns, Omega_b = cosmo_pars
         self.zs, self.n_zs           = n_z
-        self.probe_list              = probe_list
         
-        Cl = get_spectra(N_Z_BINS, self.zs, self.n_zs, self.probe_list, self.OmegaM_fid, self.As_fid, 
+        Cl = get_spectra(N_Z_BINS, self.zs, self.n_zs, self.OmegaM_fid, self.As_fid, 
                          h=h, ns=ns, Omega_b=Omega_b)
 
         self.Cl = Cl
         self.set_Cl_arr(Cl)
     
-    def get_synthetic_lensing_data(self, kappa_l, sigma_eps, nbar):
-        sigma_eps_i = sigma_eps / np.sqrt(nbar * self.PIXEL_AREA)
+    def get_synthetic_lensing_data(self, kappa_l, sigma_eps, galaxy_number):
+        sigma_eps_i = sigma_eps / np.sqrt(galaxy_number)
 
         gamma_1, gamma_2 = self.map_tool.do_fwd_KS(kappa_l)
 
@@ -57,20 +56,17 @@ class CombinedMap:
         data = np.random.poisson(lambda_i)        
         return data
         
-    def create_synthetic_data(self, nbars, sigma_eps, probe_list):
+    def create_synthetic_data(self, nbars, sigma_eps):
         print("Creating synthetic map....")
         field = self.init_field(1.)
-        data_list = []       
+        n_gals_list = []       
+        ellipticity_list = []       
         for i in range(self.N_Z_BINS):
-            probe = probe_list[i]
-            if(probe=='lensing'):
-                kappa_l = field[i]
-                data = self.get_synthetic_lensing_data(kappa_l, sigma_eps[i], nbars[i])
-            elif(probe=='galaxy'):
-                delta_l = field[i]
-                data = self.get_synthetic_galaxy_data(delta_l, nbars[i])
-            data_list.append(data)            
-        return data_list, field                    
+            n_gals = self.get_synthetic_galaxy_data(field[i], nbars[i])
+            ellipticity = self.get_synthetic_lensing_data(field[i], sigma_eps[i], n_gals)
+            n_gals_list.append(n_gals)           
+            ellipticity_list.append(ellipticity)            
+        return field, n_gals_list, ellipticity_list                   
     
     @partial(jit, static_argnums=(0,))
     def log_prior(self, x):        

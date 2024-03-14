@@ -6,7 +6,7 @@ from camb import model
 from camb.sources import SplinedSourceWindow, GaussianSourceWindow
 from math import sqrt
 
-def get_spectra(N_Z_BINS, zs, n_zs, probe_list, Omega_m, A_s, h=0.7, ns=0.97, Omega_b=0.046):
+def get_spectra(N_Z_BINS, zs, n_zs, Omega_m, A_s, h=0.7, ns=0.97, Omega_b=0.046):
     tic = time.time()
     lmax=8000    
     pars = camb.CAMBparams()
@@ -17,12 +17,9 @@ def get_spectra(N_Z_BINS, zs, n_zs, probe_list, Omega_m, A_s, h=0.7, ns=0.97, Om
     pars.Want_CMB_lensing = False 
     pars.NonLinear = model.NonLinear_both
     SourceWindows = []
-    for z, n_z, probe in zip(zs, n_zs, probe_list):
-        if(probe=='lensing'):
-            window = SplinedSourceWindow(source_type='lensing', z=z, W=n_z)
-        elif(probe=='galaxy'):
-            mu, std = get_mean_std(n_z, z)
-            window = GaussianSourceWindow(redshift=mu, source_type='counts', bias=1., sigma=std)
+    for z, n_z in zip(zs, n_zs):
+        mu, std = get_mean_std(n_z, z)
+        window = GaussianSourceWindow(redshift=mu, source_type='counts', bias=1., sigma=std)
         SourceWindows.append(window)        
         
     pars.SourceWindows = SourceWindows
