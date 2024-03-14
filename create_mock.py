@@ -2,8 +2,8 @@ import sys
 import h5py as h5
 
 # Import functions from modules
-from karmic_harmonies.map_objects import GaussianMap, LogNormalMap
-from karmic_harmonies.io import *
+from mbi_ia.map_objects import GaussianMap, LogNormalMap
+from mbi_ia.io import *
 
 configfile = sys.argv[1]
 

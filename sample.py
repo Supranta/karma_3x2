@@ -5,10 +5,10 @@ import numpy as np
 import jax.numpy as jnp
 
 # Import functions from modules
-from karmic_harmonies.map_objects import GaussianMap, LogNormalMap
-from karmic_harmonies.samplers import HMCSampler, SliceSampler, MHSampler
-from karmic_harmonies.io import *
-from karmic_harmonies.utils import get_lensing_spectra
+from mbi_ia.map_objects import GaussianMap, LogNormalMap
+from mbi_ia.samplers import HMCSampler, SliceSampler, MHSampler
+from mbi_ia.io import *
+from mbi_ia.utils import get_lensing_spectra
 
 restart_flag = sys.argv[1]
 

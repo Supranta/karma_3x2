@@ -4,9 +4,10 @@ import numpy as np
 import jax.numpy as jnp
 
 # Import functions from modules
-from karmic_harmonies.map_objects import GaussianMap, LogNormalMap
-from karmic_harmonies.samplers import HMCSampler, SliceSampler, MHSampler
-from karmic_harmonies import get_lensing_spectra, config_map, config_io, config_sampling, config_cosmo, config_cosmo_ia_pars, config_lognormal, config_mock, IOHandler
+from mbi_ia.map_objects import GaussianMap, LogNormalMap
+from mbi_ia.samplers import HMCSampler, SliceSampler, MHSampler
+from mbi_ia.utils import get_lensing_spectra
+from mbi_ia.io import * 
 
 configfile = sys.argv[1]
 
@@ -57,7 +58,8 @@ def get_mass_matrix():
         x_i_dir[i] = 1
         x_i_dir = jnp.array(x_i_dir)
         grad_like = grad(combined_map.log_like, 0)
-        _, v_like = jvp(grad_like, (x,), (x_i_dir,))
+
+        _, v_like = jvp(grad_like, (x), (x_i_dir,))
         
         mass_matrix[i] = np.abs(v_like)
     
