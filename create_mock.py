@@ -3,7 +3,7 @@ import h5py as h5
 
 # Import functions from modules
 from karmic_harmonies.map_objects import GaussianMap, LogNormalMap
-from karmic_harmonies import config_map, config_io, config_mock, config_lognormal, config_cosmo_ia_pars, IOHandler
+from karmic_harmonies.io import *
 
 configfile = sys.argv[1]
 

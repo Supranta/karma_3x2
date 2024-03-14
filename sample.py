@@ -7,7 +7,8 @@ import jax.numpy as jnp
 # Import functions from modules
 from karmic_harmonies.map_objects import GaussianMap, LogNormalMap
 from karmic_harmonies.samplers import HMCSampler, SliceSampler, MHSampler
-from karmic_harmonies import get_lensing_spectra, config_map, config_io, config_sampling, config_cosmo, config_cosmo_ia_pars, config_lognormal, IOHandler
+from karmic_harmonies.io import *
+from karmic_harmonies.utils import get_lensing_spectra
 
 restart_flag = sys.argv[1]
 
@@ -23,7 +24,6 @@ cosmo_ia_pars                             = config_cosmo_ia_pars(configfile)
 sample_map, sample_ia, \
             N_ADAPT, N_MCMC, dt, N_LEAPFROG,\
             precalculated_mass_matrix       = config_sampling(configfile)
-cosmo_sampler, sigma_Om, sigma_A, rho, emulator_file = config_cosmo(configfile)
 
 # Load n_z's from file.
 with h5.File(n_z_file, 'r') as f:

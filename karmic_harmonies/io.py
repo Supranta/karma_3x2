@@ -143,28 +143,7 @@ def config_lognormal(configfile, base_dir='./'):
     
     return lognormal, precalculated, shift, var_gauss
     
-def config_cosmo(configfile):
-    print('Entering config_cosmo....')
-    
-    config = configparser.ConfigParser()
-    config.read(configfile)
-    
-    sigma_Om = float(config['COSMO']['sigma_Om'])
-    sigma_A  = float(config['COSMO']['sigma_A'])
-    rho      = float(config['COSMO']['rho'])
-    try:      
-        emulator_file = config['COSMO']['emulator_file']
-    except:     
-        emulator_file = None
-    try:
-        cosmo_sampler = config['COSMO']['cosmo_sampler']
-    except:
-        cosmo_sampler = 'slice'
-    
-    print('Exiting config_cosmo....')
-    
-    return cosmo_sampler, sigma_Om, sigma_A, rho, emulator_file
-        
+       
 class IOHandler:
     def __init__(self, savedir, N_SAVE, N_RESTART, sample_map, sample_cosmo, OmegaM):
         self.savedir = savedir     
