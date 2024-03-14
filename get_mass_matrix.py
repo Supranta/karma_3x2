@@ -10,7 +10,7 @@ from karmic_harmonies import get_lensing_spectra, config_map, config_io, config_
 
 configfile = sys.argv[1]
 
-N_Z_BINS, n_z_file, N_grid, theta_max, probe_list = config_map(configfile)
+N_Z_BINS, n_z_file, N_grid, theta_max = config_map(configfile)
 datafile, savedir, _, _               = config_io(configfile)
 lognormal, precalculated, shift, var_gauss = config_lognormal(configfile)
 cosmo_pars = config_cosmo_pars(configfile)
@@ -30,12 +30,12 @@ nz         = [zs, n_zs]
 
 if(lognormal):
     print("Using LogNormal maps....")
-    combined_map = LogNormalMap(N_Z_BINS, N_grid, theta_max, nz, probe_list, cosmo_pars, shift, precalculated)
+    combined_map = LogNormalMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_pars, shift, precalculated)
     if var_gauss is not None:
         combined_map.var_gauss = var_gauss
 else:
     print("Using Gaussian maps....")
-    combined_map = GaussianMap(N_Z_BINS, N_grid, theta_max, nz, probe_list, cosmo_pars)
+    combined_map = GaussianMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_pars)
 
 combined_map.set_data(datafile)
 
@@ -45,17 +45,14 @@ from jax import grad, jvp
 EPS = 1e-15
 
 def get_mass_matrix():
-    data, field_true = combined_map.create_synthetic_data(n_bar, sigma_eps, probe_list)
+    field_true, n_gals, ellipticity = combined_map.create_synthetic_data(n_bar, sigma_eps)
     x = combined_map.field2x(field_true)
     mass_matrix = np.zeros((N_Z_BINS, N_Z_BINS, N_grid**2 - 1))
      
     for i in range(N_Z_BINS):
-        probe = probe_list[i]
-        if(probe == 'lensing'):
-            combined_map.data[i]['eps'] = data[i]
-        elif(probe == 'galaxy'):
-            combined_map.data[i]['counts'] = data[i]
-    for i in range(N_Z_BINS):
+        combined_map.data[i]['eps'] = ellipticity[i]
+        combined_map.data[i]['counts'] = n_gals[i]
+    
         x_i_dir = np.zeros(x.shape)
         x_i_dir[i] = 1
         x_i_dir = jnp.array(x_i_dir)
@@ -63,6 +60,7 @@ def get_mass_matrix():
         _, v_like = jvp(grad_like, (x,), (x_i_dir,))
         
         mass_matrix[i] = np.abs(v_like)
+    
     for i in range(N_Z_BINS):
         mass_matrix[i,i] = mass_matrix[i,i] + 1.
     

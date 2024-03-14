@@ -15,7 +15,7 @@ assert restart_flag == 'INIT' or restart_flag == 'RESUME', "The restart flag (1s
 
 configfile = sys.argv[2]
 
-N_Z_BINS, n_z_file, N_grid, theta_max, probe_list = config_map(configfile)
+N_Z_BINS, n_z_file, N_grid, theta_max       = config_map(configfile)
 datafile, savedir, N_SAVE, N_RESTART        = config_io(configfile)
 lognormal, precalculated, shift, var_gauss  = config_lognormal(configfile)
 cosmo_pars                             = config_cosmo_pars(configfile)
@@ -38,12 +38,12 @@ io_handler = IOHandler(savedir, N_SAVE, N_RESTART, sample_map, sample_cosmo, cos
 
 if(lognormal):
     print("Using LogNormal maps....")
-    combined_map = LogNormalMap(N_Z_BINS, N_grid, theta_max, nz, probe_list, cosmo_pars, shift, precalculated)
+    combined_map = LogNormalMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_pars, shift, precalculated)
     if var_gauss is not None:
         combined_map.var_gauss = var_gauss
 else:
     print("Using Gaussian maps....")
-    combined_map = GaussianMap(N_Z_BINS, N_grid, theta_max, nz, probe_list, cosmo_pars)
+    combined_map = GaussianMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_pars)
 
 # Emu = None
 # if emulator_file is not None:

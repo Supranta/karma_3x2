@@ -33,5 +33,6 @@ class GaussianMap(CombinedMap):
         x_imag = self.matmul(self.R_imag_T, delta[:,1]) / np.sqrt(self.eig_val_imag.T)
         x = np.swapaxes(np.array([x_real, x_imag]), 0, 1)
         x = self.reverse_wrap_fourier(x)
-        x = jax.ops.index_update(x, jax.ops.index[:,-1], 0.)
+        #x = jax.ops.index_update(x, jax.ops.index[:,-1], 0.)
+        x = x.at[:,-1].set(0.)
         return x       
