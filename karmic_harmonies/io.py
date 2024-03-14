@@ -94,13 +94,12 @@ def config_sampling(configfile):
     config = configparser.ConfigParser()
     config.read(configfile)
     
-    sample_map    = bool(config['SAMPLING']['sample_map'].lower()=="true")
-    sample_cosmo  = bool(config['SAMPLING']['sample_cosmo'].lower()=="true")
-    N_COSMO       = int(config['SAMPLING']['N_COSMO'])
-    N_MCMC        = int(config['SAMPLING']['N_MCMC'])
-    N_ADAPT       = int(config['SAMPLING']['N_ADAPT'])
-    dt            = float(config['SAMPLING']['dt'])
-    N_LEAPFROG    = int(config['SAMPLING']['N_LEAPFROG'])
+    sample_map = bool(config['SAMPLING']['sample_map'].lower()=="true")
+    sample_ia  = bool(config['SAMPLING']['sample_ia'].lower()=="true")
+    N_MCMC     = int(config['SAMPLING']['N_MCMC'])
+    N_ADAPT    = int(config['SAMPLING']['N_ADAPT'])
+    dt         = float(config['SAMPLING']['dt'])
+    N_LEAPFROG = int(config['SAMPLING']['N_LEAPFROG'])
     try:
         precalculated_mass_matrix = bool(config['SAMPLING']['precalculated_mass_matrix'].lower()=="true")
     except:
@@ -108,7 +107,7 @@ def config_sampling(configfile):
 
     print('Exiting config_sampling....')
     
-    return sample_map, sample_cosmo, N_COSMO, N_ADAPT, N_MCMC, dt, N_LEAPFROG, precalculated_mass_matrix
+    return sample_map, sample_ia, N_ADAPT, N_MCMC, dt, N_LEAPFROG, precalculated_mass_matrix
 
 def config_lognormal(configfile, base_dir='./'):
     print('Entering config_lognormal....')
