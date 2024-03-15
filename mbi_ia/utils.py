@@ -1,78 +1,42 @@
 import numpy as np
 import h5py as h5
 import time
-import camb
-from camb import model
-from camb.sources import SplinedSourceWindow, GaussianSourceWindow
 from math import sqrt
+import pyccl as ccl
 
-def get_spectra(N_Z_BINS, zs, n_zs, Omega_m, A_s, h=0.7, ns=0.97, Omega_b=0.046):
-    tic = time.time()
-    lmax=8000    
-    pars = camb.CAMBparams()
-    pars.set_cosmology(H0=100 * h, ombh2=Omega_b * h * h, omch2=(Omega_m - Omega_b) * h * h)
-    pars.InitPower.set_params(As=A_s, ns=ns)
-    pars.set_for_lmax(lmax, lens_potential_accuracy=1)
-    pars.Want_CMB = False 
-    pars.Want_CMB_lensing = False 
-    pars.NonLinear = model.NonLinear_both
-    SourceWindows = []
-    for z, n_z in zip(zs, n_zs):
-        mu, std = get_mean_std(n_z, z)
-        window = GaussianSourceWindow(redshift=mu, source_type='counts', bias=1., sigma=std)
-        SourceWindows.append(window)        
-        
-    pars.SourceWindows = SourceWindows
-    results = camb.get_results(pars)
-    cls = results.get_source_cls_dict(raw_cl=True)
-    
-    lmax = len(cls['W1xW1'])
-    
+def get_spectra(N_Z_BINS, zs, n_zs, Omega_m, sigma8, h=0.7, ns=0.97, Omega_b=0.046):
+    lmax=8000
+    cosmo = ccl.Cosmology(Omega_c=Omega_m-Omega_b, Omega_b=Omega_b,
+                                h=h, n_s=ns, sigma8=sigma8,
+                                transfer_function='boltzmann_camb')
+    ells = np.arange(lmax)
     Cl = np.zeros((N_Z_BINS, N_Z_BINS, lmax))
-
     for i in range(N_Z_BINS):
-        for j in range(N_Z_BINS):
-            cross_bin = 'W'+str(i+1)+'xW'+str(j+1)
-            Cl[i,j] = cls[cross_bin]
-    
-    for i in range(N_Z_BINS):
-        Cl[i,i,:2] = 1e-15                
-    
-    toc = time.time()
-    print("Time taken for power spectrum calculations: %2.3f seconds"%(toc - tic))
+        gals = ccl.NumberCountsTracer(cosmo, has_rsd=False, dndz=(zs[i], n_zs[i]), bias=(zs[i], np.ones_like(zs[i])))
+        Cl[i,i] = ccl.angular_cl(cosmo, gals, gals, ells)
+        Cl[i,i,:2] = 1e-15
     return Cl
 
 def get_lensing_spectra(N_Z_BINS, zs, n_zs, Omega_m, A_s, h=0.7, ns=0.97, Omega_b=0.046):
-    tic = time.time()
     lmax=8000    
-    pars = camb.CAMBparams()
-    pars.set_cosmology(H0=100 * h, ombh2=Omega_b * h * h, omch2=(Omega_m - Omega_b) * h * h)
-    pars.InitPower.set_params(As=A_s, ns=ns)
-    pars.set_for_lmax(lmax, lens_potential_accuracy=1)
-    pars.Want_CMB = False 
-    pars.Want_CMB_lensing = False 
-    pars.NonLinear = model.NonLinear_both
-    SourceWindows = []
-    for z, n_z in zip(zs, n_zs):
-        SourceWindows.append(SplinedSourceWindow(source_type='lensing', z=z, W=n_z))
-    pars.SourceWindows = SourceWindows
-    results = camb.get_results(pars)
-    cls = results.get_source_cls_dict(raw_cl=True)
-    
-    lmax = len(cls['W1xW1'])
-    
+    cosmo = ccl.Cosmology(Omega_c=Omega_m-Omega_b, Omega_b=Omega_b,
+                                h=h, n_s=ns, sigma8=sigma8,
+                                transfer_function='boltzmann_camb')
+
+    ells = np.arange(lmax)
     Cl = np.zeros((N_Z_BINS, N_Z_BINS, lmax))
+    wl_tracers = []
+    for i in range(N_Z_BINS):
+        gals = ccl.WeakLensingTracer(cosmo, dndz=(zs[i], n_zs[i]))
+        wl_tracers.append(gals)
 
     for i in range(N_Z_BINS):
         for j in range(N_Z_BINS):
-            cross_bin = 'W'+str(i+1)+'xW'+str(j+1)
-            Cl[i,j] = cls[cross_bin]
+            Cl[i,j] = ccl.angular_cl(cosmo, wl_tracers[i], wl_tracers[j], ells)
     
     for i in range(N_Z_BINS):
         Cl[i,i,:2] = 1e-15                
     
-    toc = time.time()
-    print("Time taken for power spectrum calculations: %2.3f seconds"%(toc - tic))
     return Cl
 
 def get_mean_std(n_z, z):
@@ -80,44 +44,6 @@ def get_mean_std(n_z, z):
     z_var  = np.trapz(n_z * (z - z_mean)**2, z)
     z_std  = np.sqrt(z_var)
     return z_mean, z_std
-
-def get_galaxy_spectra(N_Z_BINS, zs, n_zs, Omega_m, A_s, h=0.7, ns=0.97, Omega_b=0.046):
-    tic = time.time()
-    lmax=8000    
-    pars = camb.CAMBparams()
-    pars.set_cosmology(H0=100 * h, ombh2=Omega_b * h * h, omch2=(Omega_m - Omega_b) * h * h)
-    pars.InitPower.set_params(As=A_s, ns=ns)
-    pars.set_for_lmax(lmax, lens_potential_accuracy=1)
-    pars.Want_CMB = False 
-    pars.Want_CMB_lensing = False 
-    pars.NonLinear = model.NonLinear_both
-    SourceWindows = []
-    for z, n_z in zip(zs, n_zs):
-        mu, std = get_mean_std(n_z, z)
-        window = GaussianSourceWindow(redshift=mu, source_type='counts', bias=1., sigma=std)
-#         window = SplinedSourceWindow(source_type='counts', z=z, W=n_z)
-        SourceWindows.append(window)
-    pars.SourceWindows = SourceWindows
-    results = camb.get_results(pars)
-    cls = results.get_source_cls_dict(raw_cl=True)
-    
-    lmax = len(cls['W1xW1'])
-    
-    Cl = np.zeros((N_Z_BINS, N_Z_BINS, lmax))
-
-    for i in range(N_Z_BINS):
-        cross_bin = 'W'+str(i+1)+'xW'+str(i+1)
-        Cl[i,i] = cls[cross_bin]
-        for j in range(N_Z_BINS):
-            if(i!=j):
-                Cl[i,j] = 0. * cls['W1xW1']
-    
-    for i in range(N_Z_BINS):
-        Cl[i,i,:2] = 1e-15                
-    
-    toc = time.time()
-    print("Time taken for power spectrum calculations: %2.3f seconds"%(toc - tic))
-    return Cl
 
 def get_sigma8(Omega_m, A_s, h=0.7, ns=0.97, Omega_b=0.046):
     pars = camb.CAMBparams()

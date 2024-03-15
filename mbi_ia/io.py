@@ -71,20 +71,20 @@ def config_cosmo_ia_pars(configfile):
     
     try:
         Omega_m = float(config['COSMOLOGY']['Omega_m'])
-        As      = float(config['COSMOLOGY']['As']) * 1e-9
+        sigma8  = float(config['COSMOLOGY']['sigma8'])
         h       = float(config['COSMOLOGY']['h'])
         ns      = float(config['COSMOLOGY']['ns'])
         Omega_b = float(config['COSMOLOGY']['Omega_b'])
         A1      = float(config['COSMOLOGY']['A1'])
     except:
-        Omega_m = 0.279
-        As = 2.249e-9
+        Omega_m = 0.3
+        sigma8  = 0.8
         h = 0.7
         ns = 0.97
         Omega_b = 0.046
         A1 = 5.
     print('Exiting config_cosmo_pars....')
-    cosmo_ia_pars = [Omega_m, As, h, ns, Omega_b, A1]
+    cosmo_ia_pars = [Omega_m, sigma8, h, ns, Omega_b, A1]
     
     return cosmo_ia_pars
     

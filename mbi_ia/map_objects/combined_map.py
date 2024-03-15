@@ -30,11 +30,11 @@ class CombinedMap:
         self.map_tool = MapTools(N_grid, theta_max)
         self.N_Y = self.map_tool.N_Y
         
-        self.OmegaM_fid, self.As_fid, h, ns, Omega_b, self.A1_fid = cosmo_ia_pars
+        self.OmegaM_fid, self.sigma8_fid, h, ns, Omega_b, self.A1_fid = cosmo_ia_pars
         self.zs, self.n_zs           = n_z
         self.C_cr = 0.0134
        
-        Cl = get_spectra(N_Z_BINS, self.zs, self.n_zs, self.OmegaM_fid, self.As_fid, 
+        Cl = get_spectra(N_Z_BINS, self.zs, self.n_zs, self.OmegaM_fid, self.sigma8_fid, 
                          h=h, ns=ns, Omega_b=Omega_b)
 
         self.Cl = Cl
@@ -45,7 +45,6 @@ class CombinedMap:
         
         C1 = self.C_cr * self.OmegaM_fid * self.A1_fid
 
-        print("C1: "+str(C1))
         gamma_1, gamma_2 = self.map_tool.do_fwd_KS(kappa_l)
 
         eps_1_i = C1 * gamma_1 + sigma_eps_i * np.random.normal(size=gamma_1.shape)
@@ -61,7 +60,6 @@ class CombinedMap:
         return data
         
     def create_synthetic_data(self, nbars, sigma_eps):
-        print("Creating synthetic map....")
         field = self.init_field(1.)
         n_gals_list = []       
         ellipticity_list = []       
