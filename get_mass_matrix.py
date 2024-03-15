@@ -44,6 +44,8 @@ import jax.numpy as jnp
 from jax import grad, jvp
 
 EPS = 1e-15
+ia_pars_fid     = np.array([cosmo_ia_pars[-1], 0.])
+ia_pars_tangent = np.zeros_like(ia_pars_fid)
 
 def get_mass_matrix():
     field_true, n_gals, ellipticity = combined_map.create_synthetic_data(n_bar, sigma_eps)
@@ -59,7 +61,7 @@ def get_mass_matrix():
         x_i_dir = jnp.array(x_i_dir)
         grad_like = grad(combined_map.log_like, 0)
 
-        _, v_like = jvp(grad_like, (x), (x_i_dir,))
+        _, v_like = jvp(grad_like, (x, ia_pars_fid), (x_i_dir, ia_pars_tangent))
         
         mass_matrix[i] = np.abs(v_like)
     
