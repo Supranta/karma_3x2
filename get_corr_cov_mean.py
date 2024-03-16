@@ -84,6 +84,25 @@ with h5.File(n_z_file, 'r') as f:
     
 nz         = [zs, n_zs]
 
+def get_data_corr():
+    with h5.File(datafile, 'r+') as f:
+        for i in range(N_Z_BINS):
+            e_field_true = f['bin_%d'%(i)]['data']['eps'][:]
+            counts_true  = f['bin_%d'%(i)]['data']['counts'][:]
+            weights = counts_true / counts_true.mean()
+            e_cat = treecorr.Catalog(ra=ra_grid.flatten(), dec=dec_grid.flatten(),
+                                     g1=e_field_true[0].flatten(), g2=e_field_true[1].flatten(), w=weights.flatten(),
+                                     ra_units='deg', dec_units='deg')
+            g_cat = treecorr.Catalog(ra=ra_grid.flatten(), dec=dec_grid.flatten(), w=weights.flatten(),
+                                     ra_units='deg', dec_units='deg')
+            xi_ee = get_ee_corr(e_cat, e_cat)
+            xi_ge = get_ge_corr(g_cat, e_cat)
+            for x in ['xi_ge', 'xi_ee']:
+                if x in f['bin_%d'%(i)]:
+                    del f['bin_%d'%(i)][x]
+            f['bin_%d'%(i)]['xi_ge'] = xi_ge
+            f['bin_%d'%(i)]['xi_ee'] = xi_ee
+
 if(lognormal):
     print("Creating lognormal mocks...")
     combined_map = LogNormalMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_ia_pars, shift, precalculated)
@@ -93,37 +112,14 @@ else:
     print("Creating Gaussian mocks...")
     combined_map = GaussianMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_ia_pars)
 
-def get_ee_ps(ell_bins, field1, field2=None):
-    kappa_E1, kappa_B1 = field1
-    kappa_E1_l = combined_map.map_tool.map2fourier(kappa_E1)
-    kappa_B1_l = combined_map.map_tool.map2fourier(kappa_B1)
-    if field2 is None:
-        kappa_E2_l = kappa_E1_l
-        kappa_B2_l = kappa_B1_l
-    else:
-        kappa_E2, kappa_B2 = field2
-        kappa_E2_l = combined_map.map_tool.map2fourier(kappa_E2)
-        kappa_B2_l = combined_map.map_tool.map2fourier(kappa_B2)
-    _, PS_EE  = combined_map.map_tool.binned_Cl(kappa_E1_l, kappa_E2_l, ell_bins)
-    _, PS_BB  = combined_map.map_tool.binned_Cl(kappa_B1_l, kappa_B2_l, ell_bins)
-    return np.hstack([PS_EE+PS_BB, PS_EE-PS_BB])
-
-def get_delta_e_ps(ell_bins, delta_l, e_field, return_ell=False):
-    kappa_E, kappa_B = e_field
-    kappa_E_l = combined_map.map_tool.map2fourier(kappa_E)
-    kappa_B_l = combined_map.map_tool.map2fourier(kappa_B)
-    ell, PS_dE  = combined_map.map_tool.binned_Cl(delta_l, kappa_E_l, ell_bins)
-    _, PS_dB  = combined_map.map_tool.binned_Cl(delta_l, kappa_B_l, ell_bins)
-    if(return_ell):
-        return ell, np.hstack([PS_dE, PS_dB])
-    return np.hstack([PS_dE, PS_dB])
-
+get_data_corr()
 from tqdm import trange
-N_samples = 5
+
+N_samples = 2000
 
 for n in trange(N_samples):
     field_true, n_gals, e_field = combined_map.create_synthetic_data(n_bar, sigma_eps)    # Create a synthetic map  
-    ps_filename = savedir + '/ps_cov_mean/corr_%d.h5'%(n)
+    ps_filename = savedir + '/corr_cov_mean/corr_%d.h5'%(n)
     with h5.File(ps_filename, 'w') as f:
         pass
 
