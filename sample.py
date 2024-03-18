@@ -21,7 +21,7 @@ datafile, savedir, N_SAVE, N_RESTART        = config_io(configfile)
 lognormal, precalculated, shift, var_gauss  = config_lognormal(configfile)
 cosmo_ia_pars                             = config_cosmo_ia_pars(configfile)
 # n_bar, sigma_eps                       = config_mock(configfile)
-sample_map, sample_pars, \
+sample_map, sample_pars, sample_bias,\
             N_ADAPT, N_MCMC, dt, N_LEAPFROG,\
             precalculated_mass_matrix       = config_sampling(configfile)
 
@@ -38,17 +38,17 @@ io_handler = IOHandler(savedir, N_SAVE, N_RESTART, sample_map, sample_pars, cosm
 
 if(lognormal):
     print("Using LogNormal maps....")
-    combined_map = LogNormalMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_ia_pars, shift, precalculated)
+    combined_map = LogNormalMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_ia_pars, shift, precalculated, sample_bias)
     if var_gauss is not None:
         combined_map.var_gauss = var_gauss
 else:
     print("Using Gaussian maps....")
-    combined_map = GaussianMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_ia_pars)
+    combined_map = GaussianMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_ia_pars, sample_bias)
 
 # Default initial parameter values     
 params       = np.array([cosmo_ia_pars[-1], 0., 1.])        
 fields       = combined_map.init_field(0.1)
-param_lnprob = 0.
+pars_lnprob = 0.
         
 combined_map.set_data(datafile)
 combined_map.set_mass_matrix()
@@ -79,10 +79,21 @@ else:
 combined_map.mass_arr = mass_matrix
 
 MapSampler = HMCSampler(N_DIM, combined_map.psi, combined_map.grad_psi, combined_map.mass_arr, N_grid, N_Z_BINS, verbose=VERBOSE)
-    
+
+def get_params_dim():
+    n_bias = np.sum(sample_bias)
+    return 2 + n_bias
+
+def get_params_cov(n_dim):
+    params_std = np.array([1., 0.1, 0.1])
+    return np.diag(params_std[:n_dim]**2)
+
 if(sample_pars):
-    step_cov = np.array([[1., 0., 0.], [0., 0.1**2, 0.], [0., 0., 0.1**2]])
-    ParamSampler   = SliceSampler(3, lnprob=combined_map.log_prob_ia, verbose=VERBOSE)
+    N_PARAMS_DIM = get_params_dim()
+    step_cov = get_params_cov(N_PARAMS_DIM)
+    params = params[:N_PARAMS_DIM]
+    #step_cov = np.array([[1., 0., 0.], [0., 0.1**2, 0.], [0., 0., 0.1**2]])
+    ParamSampler   = SliceSampler(N_PARAMS_DIM, lnprob=combined_map.log_prob_ia, verbose=VERBOSE)
     ParamSampler.set_cov(step_cov)  
     param_chain = []
 

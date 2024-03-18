@@ -10,8 +10,8 @@ from jax.config import config
 config.update("jax_enable_x64", True)
 
 class LogNormalMap(CombinedMap): 
-    def __init__(self, N_Z_BINS, N_grid, theta_max, n_z, cosmo_ia_pars, shifts, precalculated):
-        super().__init__(N_Z_BINS, N_grid, theta_max, n_z, cosmo_ia_pars)  
+    def __init__(self, N_Z_BINS, N_grid, theta_max, n_z, cosmo_ia_pars, shifts, precalculated, sample_bias=False):
+        super().__init__(N_Z_BINS, N_grid, theta_max, n_z, cosmo_ia_pars, sample_bias=sample_bias)  
         self.N_pix = N_grid * N_grid
         self.Pl_theta, self.w_i, self.ls, self.lmax = precalculated
         self.shifts = shifts
