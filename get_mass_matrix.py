@@ -44,7 +44,7 @@ import jax.numpy as jnp
 from jax import grad, jvp
 
 EPS = 1e-15
-ia_pars_fid     = np.array([cosmo_ia_pars[-1], 0.])
+ia_pars_fid     = np.array([cosmo_ia_pars[-1], 0., 1.])
 ia_pars_tangent = np.zeros_like(ia_pars_fid)
 
 def get_mass_matrix():

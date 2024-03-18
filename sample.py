@@ -21,7 +21,7 @@ datafile, savedir, N_SAVE, N_RESTART        = config_io(configfile)
 lognormal, precalculated, shift, var_gauss  = config_lognormal(configfile)
 cosmo_ia_pars                             = config_cosmo_ia_pars(configfile)
 # n_bar, sigma_eps                       = config_mock(configfile)
-sample_map, sample_ia, \
+sample_map, sample_pars, \
             N_ADAPT, N_MCMC, dt, N_LEAPFROG,\
             precalculated_mass_matrix       = config_sampling(configfile)
 
@@ -34,7 +34,7 @@ assert len(n_zs)==N_Z_BINS,"Size of the n_zs list must be equal to the number of
 
 nz         = [zs, n_zs]
 
-io_handler = IOHandler(savedir, N_SAVE, N_RESTART, sample_map, sample_ia, cosmo_ia_pars[0])
+io_handler = IOHandler(savedir, N_SAVE, N_RESTART, sample_map, sample_pars, cosmo_ia_pars[0])
 
 if(lognormal):
     print("Using LogNormal maps....")
@@ -46,9 +46,9 @@ else:
     combined_map = GaussianMap(N_Z_BINS, N_grid, theta_max, nz, cosmo_ia_pars)
 
 # Default initial parameter values     
-ia_pars = np.array([cosmo_ia_pars[-1], 0.])        
-fields     = combined_map.init_field(0.1)
-ia_lnprob = 0.
+params       = np.array([cosmo_ia_pars[-1], 0., 1.])        
+fields       = combined_map.init_field(0.1)
+param_lnprob = 0.
         
 combined_map.set_data(datafile)
 combined_map.set_mass_matrix()
@@ -80,31 +80,31 @@ combined_map.mass_arr = mass_matrix
 
 MapSampler = HMCSampler(N_DIM, combined_map.psi, combined_map.grad_psi, combined_map.mass_arr, N_grid, N_Z_BINS, verbose=VERBOSE)
     
-if(sample_ia):
-    step_cov = np.array([[1., 0.], [0., 0.1**2]])
-    IASampler   = SliceSampler(2, lnprob=combined_map.log_prob_ia, verbose=VERBOSE)
-    IASampler.set_cov(step_cov)  
-    ia_chain = []
+if(sample_pars):
+    step_cov = np.array([[1., 0., 0.], [0., 0.1**2, 0.], [0., 0., 0.1**2]])
+    ParamSampler   = SliceSampler(3, lnprob=combined_map.log_prob_ia, verbose=VERBOSE)
+    ParamSampler.set_cov(step_cov)  
+    param_chain = []
 
 for i in range(N_START, N_START + N_MCMC):
     print("MCMC step: %d"%(i))
     if(sample_map):    
         start_time = time.time()
-        x, ln_prob, acc, KE = MapSampler.sample_one_step(x, dt, N_LEAPFROG, psi_kwargs={'ia_pars': ia_pars}, grad_psi_kwargs={'ia_pars': ia_pars})    
+        x, ln_prob, acc, KE = MapSampler.sample_one_step(x, dt, N_LEAPFROG, psi_kwargs={'params': params}, grad_psi_kwargs={'params': params})    
         end_time = time.time()        
         print("Time taken for HMC sampling: %2.3f"%(end_time - start_time))
         fields = combined_map.x2field(x)        
         ln_prior = float(combined_map.log_prior(x))
-        ln_like  = float(combined_map.log_like(x, ia_pars))        
+        ln_like  = float(combined_map.log_like(x, params))        
         io_handler.map_sample_output(acc, i, N_MODES, N_pix, ln_prior, ln_like)
         io_handler.write_map_output(i, fields, x, KE, ln_prob, ln_like, ln_prior)        
-    if(sample_ia):
-        ia_pars, ia_acc, ia_lnprob = IASampler.sample_one_step(ia_pars, lnprob_kwargs={'x':x})
-        print("IA pars: "+str(ia_pars))
+    if(sample_pars):
+        params, pars_acc, pars_lnprob = ParamSampler.sample_one_step(params, lnprob_kwargs={'x':x})
+        print("IA bias pars: "+str(params))
         if(i < N_START + N_ADAPT):
             print("Adapting covariance...")
-            IASampler.update_cov(ia_pars, i+2-N_START) 
-        ia_chain.append(ia_pars)
-        np.save(savedir+'/ia_chain.npy',np.array(ia_chain))
+            ParamSampler.update_cov(params, i+2-N_START) 
+        param_chain.append(params)
+        np.save(savedir+'/parameter_chain.npy',np.array(param_chain))
     fields = combined_map.x2field(x)
-    io_handler.write_restart(i, fields, x, ia_pars, ia_lnprob)        
+    io_handler.write_restart(i, fields, x, params, pars_lnprob)        
