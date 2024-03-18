@@ -100,6 +100,11 @@ def config_sampling(configfile):
         sample_bias = bool(config['SAMPLING']['sample_bias'].lower()=="true")
     else:
         sample_bias = True
+    if 'sample_bta' in config['SAMPLING']:
+        sample_bta = bool(config['SAMPLING']['sample_bta'].lower()=="true")
+    else:
+        sample_bta = True
+
     N_MCMC      = int(config['SAMPLING']['N_MCMC'])
     N_ADAPT     = int(config['SAMPLING']['N_ADAPT'])
     dt          = float(config['SAMPLING']['dt'])
@@ -111,7 +116,7 @@ def config_sampling(configfile):
 
     print('Exiting config_sampling....')
     
-    return sample_map, sample_pars, sample_bias, N_ADAPT, N_MCMC, dt, N_LEAPFROG, precalculated_mass_matrix
+    return sample_map, sample_pars, sample_bias, sample_bta, N_ADAPT, N_MCMC, dt, N_LEAPFROG, precalculated_mass_matrix
 
 def config_lognormal(configfile, base_dir='./'):
     print('Entering config_lognormal....')

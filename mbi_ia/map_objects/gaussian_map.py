@@ -9,8 +9,8 @@ from jax.config import config
 config.update("jax_enable_x64", True)
 
 class GaussianMap(CombinedMap):    
-    def __init__(self, N_Z_BINS, N_grid, theta_max, n_z, cosmo_ia_pars, sample_bias=True):
-        super().__init__(N_Z_BINS, N_grid, theta_max, n_z, cosmo_ia_pars, sample_bias=sample_bias)        
+    def __init__(self, N_Z_BINS, N_grid, theta_max, n_z, cosmo_ia_pars, sample_bias=True, sample_bta=True):
+        super().__init__(N_Z_BINS, N_grid, theta_max, n_z, cosmo_ia_pars, sample_bias=sample_bias, sample_bta=sample_bta)        
         self.set_eigs(self.Cl_arr_real, self.Cl_arr_imag)
         
     def init_field(self, scaling=1.):

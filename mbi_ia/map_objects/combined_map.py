@@ -17,7 +17,7 @@ EPS = 1e-20
 J = np.complex(0., 1.)
 
 class CombinedMap:
-    def __init__(self, N_Z_BINS, N_grid, theta_max, n_z, cosmo_ia_pars, sample_bias=True):
+    def __init__(self, N_Z_BINS, N_grid, theta_max, n_z, cosmo_ia_pars, sample_bias=True, sample_bta=True):
         """
         :N_Z_BINS:   Number of redshift bins
         :N_grid:     Number of pixels on each side. At the moment, we assume square geometry
@@ -33,8 +33,10 @@ class CombinedMap:
         self.OmegaM_fid, self.sigma8_fid, h, ns, Omega_b, self.A1_fid = cosmo_ia_pars
         self.zs, self.n_zs           = n_z
         self.C_cr = 0.0134
+
         self.sample_bias = sample_bias
-       
+        self.sample_bta  = sample_bta
+
         Cl = get_spectra(N_Z_BINS, self.zs, self.n_zs, self.OmegaM_fid, self.sigma8_fid, 
                          h=h, ns=ns, Omega_b=Omega_b)
 
@@ -83,7 +85,10 @@ class CombinedMap:
     @partial(jit, static_argnums=(0,))
     def log_like_1bin_shear(self, delta_l, data, params):
         A1  = params[0]
-        bta = params[1] 
+        if(self.sample_bta):
+            bta = params[1] 
+        else:
+            bta = 0.
         eps        = data['eps']
         sigma_eps  = data['sigma_eps']
         n_bar      = data['nbar']
