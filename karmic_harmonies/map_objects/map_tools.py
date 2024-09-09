@@ -3,12 +3,11 @@
 import numpy as np
 import jax.numpy as jnp
 import jax
-from jax.config import config
 from jax import jit
 from functools import partial
-config.update("jax_enable_x64", True)
+jax.config.update("jax_enable_x64", True)
 
-J = np.complex(0., 1.)
+J = 1j
 EPS = 1e-20
 
 class MapTools:
@@ -105,24 +104,26 @@ class MapTools:
 # ================== 1D array to Fourier plane ===============================             
     def set_fourier_plane_face(self, F_x, x):
         N = self.N_grid
-        F_x = jax.ops.index_update(F_x, jax.ops.index[:,:,1:-1], x[:N**2 - 2*N].reshape(2,N,N//2-1))
+        F_x = F_x.at[:,:,1:-1].set(x[:N**2 - 2*N].reshape(2,N,N//2-1))
         return F_x
 
     def set_fourier_plane_edge(self, F_x, x):
         N = self.N_grid
         N_Y = N//2+1
         N_edge = N//2-1    
-        F_x = jax.ops.index_update(F_x, jax.ops.index[:,1:N_Y-1,0],  x[N**2 - 2*N:N**2 - 2*N+2*N_edge].reshape((2,-1)))
-        F_x = jax.ops.index_update(F_x, jax.ops.index[:,1:N_Y-1,-1], x[N**2 - 2*N+2*N_edge:-3].reshape((2,-1)))
+        
+        F_x = F_x.at[:,1:N_Y-1,0].set(x[N**2 - 2*N:N**2 - 2*N+2*N_edge].reshape((2,-1)))
+        F_x = F_x.at[:,1:N_Y-1,-1].set(x[N**2 - 2*N+2*N_edge:-3].reshape((2,-1)))
         return F_x
 
     def set_fourier_plane_corner(self, F_x, x):    
         N = self.N_grid
         N_Y = N//2+1
                
-        F_x = jax.ops.index_update(F_x, jax.ops.index[0,N_Y-1,-1] , x[-3])
-        F_x = jax.ops.index_update(F_x, jax.ops.index[0,0,-1]    , x[-2])
-        F_x = jax.ops.index_update(F_x, jax.ops.index[0,N_Y-1,0] , x[-1])
+        F_x = F_x.at[0,N_Y-1,-1].set(x[-3])
+        F_x = F_x.at[0,0,-1].set(x[-2])
+        F_x = F_x.at[0,N_Y-1,0].set(x[-1])
+        
         return F_x
     
     @partial(jit, static_argnums=(0,))
@@ -146,15 +147,14 @@ class MapTools:
 
         x = jnp.zeros(shape=N*N-1)
 
-        x = jax.ops.index_update(x, jax.ops.index[:N**2 - 2*N],                    Fx[:,:,1:-1].reshape(-1))
-        x = jax.ops.index_update(x, jax.ops.index[N**2 - 2*N:N**2 - 2*N+2*N_edge], Fx[:,1:N_Y-1,0].reshape(-1))
-        x = jax.ops.index_update(x, jax.ops.index[N**2 - 2*N+2*N_edge:-3],         Fx[:,1:N_Y-1,-1].reshape(-1))
-        
-        
-        x = jax.ops.index_update(x, jax.ops.index[-3], Fx[0,N_Y-1,-1])
-        x = jax.ops.index_update(x, jax.ops.index[-2], Fx[0,0,-1])        
-        x = jax.ops.index_update(x, jax.ops.index[-1], Fx[0,N_Y-1,0])
-        
+        x = x.at[:N**2 - 2*N].set(Fx[:,:,1:-1].reshape(-1))
+        x = x.at[N**2 - 2*N:N**2 - 2*N+2*N_edge].set(Fx[:,1:N_Y-1,0].reshape(-1))
+        x = x.at[N**2 - 2*N+2*N_edge:-3].set(Fx[:,1:N_Y-1,-1].reshape(-1))
+                        
+        x = x.at[-3].set(Fx[0,N_Y-1,-1])
+        x = x.at[-2].set(Fx[0,0,-1])
+        x = x.at[-1].set(Fx[0,N_Y-1,0])
+
         return x
     
     def get_imag_indices(self):

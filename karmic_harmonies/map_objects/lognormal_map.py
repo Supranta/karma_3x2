@@ -6,8 +6,7 @@ from .combined_map import CombinedMap
 from ..utils import sample_kappa, get_lensing_spectra
 import jax
 from functools import partial
-from jax.config import config
-config.update("jax_enable_x64", True)
+jax.config.update("jax_enable_x64", True)
 
 class LogNormalMap(CombinedMap): 
     def __init__(self, N_Z_BINS, N_grid, theta_max, n_z, probe_list, cosmo_pars, shifts, precalculated):
@@ -56,7 +55,7 @@ class LogNormalMap(CombinedMap):
         fields  = jnp.zeros((self.N_Z_BINS, 2, self.N_grid, self.N_Y))
         for i in range(self.N_Z_BINS):
             field_map = shifts[i] * (jnp.exp(fieldG_map[i] - 0.5 * var_gauss[i]) - 1.)
-            fields    = jax.ops.index_add(fields, i, self.map_tool.map2fourier(field_map))
+            fields    = fields.at[i].add(self.map_tool.map2fourier(field_map))
         return fields
     
     @partial(jit, static_argnums=(0,))
@@ -66,7 +65,7 @@ class LogNormalMap(CombinedMap):
                                 self.map_tool.N_grid))
         for n in range(self.N_Z_BINS):
             fieldG_l   = self.map_tool.symmetrize_fourier(fieldG_Fourier[n])
-            fieldG_map = jax.ops.index_add(fieldG_map, n, self.map_tool.fourier2map(fieldG_l))
+            fieldG_map = fieldG_map.at[n].add(self.map_tool.fourier2map(fieldG_l))
         return fieldG_map
     
     def x2fieldG_fourier(self, x):

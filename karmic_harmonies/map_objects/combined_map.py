@@ -4,8 +4,7 @@ import jax.numpy as jnp
 import h5py as h5
 from jax import grad
 from scipy.interpolate import interp1d
-from jax.config import config
-config.update("jax_enable_x64", True)
+jax.config.update("jax_enable_x64", True)
 from jax import jit
 from functools import partial
 from ..utils import sample_kappa, get_spectra
@@ -14,7 +13,7 @@ import time
 from .map_tools import MapTools
 
 EPS = 1e-20
-J = np.complex(0., 1.)
+J = 1j
 
 class CombinedMap:
     def __init__(self, N_Z_BINS, N_grid, theta_max, n_z, probe_list, cosmo_pars):
@@ -132,7 +131,8 @@ class CombinedMap:
         x_fourier = jnp.zeros((self.N_Z_BINS, 2, self.N_grid, self.N_Y))
         for n in range(self.N_Z_BINS):
             y = self.map_tool.array2fourier_plane(x[n])
-            x_fourier = jax.ops.index_update(x_fourier, n, y)
+            x_fourier = x_fourier.at[n].set(y)
+            #x_fourier = jax.ops.index_update(x_fourier, n, y)
         return x_fourier
     
     @partial(jit, static_argnums=(0,))
@@ -140,7 +140,8 @@ class CombinedMap:
         x = jnp.zeros((self.N_Z_BINS, self.N_grid * self.N_grid - 1))
         for n in range(self.N_Z_BINS):
             y = self.map_tool.fourier_plane2array(F_x[n])
-            x = jax.ops.index_update(x, n, y)
+            x = x.at[n].set(y)
+            #x = jax.ops.index_update(x, n, y)
         return x
     
 #=============== SET OBJECT PROPERTIES ====================
@@ -262,9 +263,9 @@ class CombinedMap:
         y = jnp.zeros(x.shape)
         for i in range(self.N_Z_BINS):
             a = jnp.sum(A[i,:] * x, axis=0)
-            y = jax.ops.index_add(y, i, a)
+            y = y.at[i].add(a)
         return y
-        
+    
     def set_eigs(self, Cl_arr_real, Cl_arr_imag):
         self.eig_val_real, eig_vec_real = np.linalg.eig(Cl_arr_real.T)            
         self.eig_val_imag, eig_vec_imag = np.linalg.eig(Cl_arr_imag.T)        

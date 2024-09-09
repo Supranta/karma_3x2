@@ -5,8 +5,8 @@ from .combined_map import CombinedMap
 from ..utils import sample_kappa, get_lensing_spectra
 import jax
 from functools import partial
-from jax.config import config
-config.update("jax_enable_x64", True)
+jax.config.update("jax_enable_x64", True)
+
 
 class GaussianMap(CombinedMap):    
     def __init__(self, N_Z_BINS, N_grid, theta_max, n_z, probe_list, cosmo_pars):
@@ -33,5 +33,5 @@ class GaussianMap(CombinedMap):
         x_imag = self.matmul(self.R_imag_T, delta[:,1]) / np.sqrt(self.eig_val_imag.T)
         x = np.swapaxes(np.array([x_real, x_imag]), 0, 1)
         x = self.reverse_wrap_fourier(x)
-        x = jax.ops.index_update(x, jax.ops.index[:,-1], 0.)
+        x = x.at[:,-1].set(0.)
         return x       
